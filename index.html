@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerenciador de Tarefas — Aula TI</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       TOKENS DE DESIGN
+       ══════════════════════════════════════════════════════════ */
+    :root {
+      --bg:          #eeeae3;
+      --sidebar-bg:  #e5e1d9;
+      --surface:     #f8f6f2;
+      --surface2:    #f0ece6;
+      --border:      #d8d3ca;
+      --border-soft: #e4dfd7;
+
+      --accent:      #1b3d60;      /* azul-marinho TI */
+      --accent-lt:   #e8f0f8;
+      --accent2:     #b86830;      /* âmbar TI */
+      --accent2-lt:  #faf0e6;
+      --green:       #2e7d52;
+      --green-lt:    #e8f5ee;
+      --red:         #c0392b;
+
+      --text:        #1a1a18;
+      --muted:       #6a665e;
+      --dim:         #9e9a93;
+      --hover:       #dedad2;
+
+      --sidebar-w:   52px;
+      --sidebar-exp: 252px;
+
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans:  'DM Sans', "Segoe UI", system-ui, sans-serif;
+      --mono:  'DM Mono', 'Cascadia Code', monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:          #141210;
+        --sidebar-bg:  #1a1815;
+        --surface:     #1f1d1a;
+        --surface2:    #252320;
+        --border:      #2c2926;
+        --border-soft: #242220;
+
+        --accent:      #82b8e8;
+        --accent-lt:   #1a2535;
+        --accent2:     #d4884a;
+        --accent2-lt:  #2a1e10;
+        --green:       #4cad78;
+        --green-lt:    #0f2018;
+        --red:         #e05a4e;
+
+        --text:        #eae6df;
+        --muted:       #857f77;
+        --dim:         #524e48;
+        --hover:       #272420;
+      }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       RESET
+       ══════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       SIDEBAR
+       ══════════════════════════════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 10px 0 12px;
+      transition: width .22s cubic-bezier(.4,0,.2,1);
+      z-index: 10;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar:hover { width: var(--sidebar-exp); }
+
+    /* logo no topo da sidebar */
+    .sidebar-logo {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 14px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+    }
+
+    .sidebar-logo-icon {
+      width: 26px; height: 26px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo-icon svg {
+      width: 14px; height: 14px;
+      fill: #fff;
+    }
+
+    .sidebar-logo-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: .02em;
+    }
+
+    .sidebar-logo-text small {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--dim);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 6px 12px;
+    }
+
+    .sidebar-section-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--dim);
+      padding: 10px 14px 4px;
+      white-space: nowrap;
+    }
+
+    .sidebar-item {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 1px 6px;
+      color: var(--muted);
+      text-decoration: none;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 400;
+      transition: background .14s, color .14s;
+      position: relative;
+      gap: 0;
+    }
+
+    .sidebar-item:hover { background: var(--hover); color: var(--text); }
+
+    .sidebar-item.active {
+      background: var(--hover);
+      color: var(--accent2);
+      font-weight: 500;
+    }
+
+    .sidebar-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 9px; bottom: 9px;
+      width: 3px;
+      background: var(--accent2);
+      border-radius: 2px;
+    }
+
+    .sidebar-icon {
+      min-width: 24px;
+      margin-right: 16px;
+      text-align: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       CONTAINER PRINCIPAL
+       ══════════════════════════════════════════════════════════ */
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── Topbar ───────────────────────────────────────────────── */
+    .topbar {
+      height: 46px;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+
+    .breadcrumb {
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: .03em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .breadcrumb .sep { color: var(--border); }
+    .breadcrumb .active-crumb { color: var(--accent2); font-weight: 500; }
+
+    .topbar-spacer { flex: 1; }
+
+    /* métricas ao vivo no topbar */
+    .topbar-metrics {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar-metric {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--dim);
+      font-family: var(--mono);
+    }
+
+    .topbar-metric .m-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .topbar-metric .m-val { color: var(--text); font-weight: 500; }
+
+    /* relógio */
+    .topbar-clock {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      border-left: 1px solid var(--border);
+      padding-left: 14px;
+      min-width: 70px;
+      text-align: right;
+    }
+
+    /* ── Conteúdo rolável ──────────────────────────────────── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 26px 28px 48px;
+      background: var(--surface);
+      margin: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .content::-webkit-scrollbar { width: 4px; }
+    .content::-webkit-scrollbar-track { background: transparent; }
+    .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Linha decorativa ─────────────────────────────────── */
+    .section-rule {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+      animation: fadeUp .35s ease both;
+    }
+
+    .rule-line { flex: 1; height: 1px; background: var(--border); }
+
+    .rule-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--accent-lt);
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      padding: 3px 12px 3px 8px;
+    }
+
+    .rule-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: blink 2s infinite;
+    }
+
+    .rule-badge span {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .rule-badge { background: var(--accent-lt); }
+      .rule-badge span { color: var(--accent); }
+    }
+
+    /* ── Cabeçalho ─────────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 26px;
+      animation: fadeUp .35s .06s ease both;
+    }
+
+    .page-header-left { flex: 1; }
+
+    .page-kicker {
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 8px;
+    }
+
+    .page-title {
+      font-family: var(--serif);
+      font-size: clamp(22px, 3vw, 36px);
+      line-height: 1.16;
+      color: var(--accent);
+      margin-bottom: 12px;
+      font-weight: 400;
+    }
+
+    .page-title em {
+      font-style: italic;
+      color: var(--accent2);
+    }
+
+    .page-desc {
+      font-size: 13.5px;
+      font-weight: 300;
+      line-height: 1.74;
+      color: var(--muted);
+      max-width: 520px;
+      border-left: 2px solid var(--accent2);
+      padding-left: 14px;
+    }
+
+    /* badge de curso/turma */
+    .course-badge {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+
+    .badge-pill.course {
+      background: var(--accent-lt);
+      color: var(--accent);
+      border-color: var(--border-soft);
+    }
+
+    .badge-pill.subject {
+      background: var(--accent2-lt);
+      color: var(--accent2);
+      border-color: var(--border-soft);
+    }
+
+    .badge-pill.author {
+      background: var(--green-lt);
+      color: var(--green);
+      border-color: var(--border-soft);
+    }
+
+    /* ── Abas ──────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 22px;
+      animation: fadeUp .35s .1s ease both;
+      overflow-x: auto;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      padding: 7px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-size: 12.5px;
+      color: var(--dim);
+      transition: color .14s, border-color .14s;
+      margin-bottom: -1px;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .tab:hover { color: var(--muted); }
+    .tab.active { color: var(--accent2); border-bottom-color: var(--accent2); font-weight: 500; }
+
+    /* ── Cards de métricas ─────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+      animation: fadeUp .35s .14s ease both;
+    }
+
+    .stat-card {
+      background: var(--surface2);
+      padding: 12px 14px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border-soft);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* faixa de cor lateral */
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+
+    .stat-card.c-blue::before  { background: var(--accent); }
+    .stat-card.c-amber::before { background: var(--accent2); }
+    .stat-card.c-green::before { background: var(--green); }
+    .stat-card.c-mono::before  { background: var(--dim); }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .stat-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1s ease;
+    }
+
+    .c-blue  .stat-fill { background: var(--accent); }
+    .c-amber .stat-fill { background: var(--accent2); }
+    .c-green .stat-fill { background: var(--green); }
+    .c-mono  .stat-fill { background: var(--dim); }
+
+    /* ── Mini gráfico de CPU ───────────────────────────────── */
+    .cpu-chart-wrap {
+      margin-bottom: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border-soft);
+      border-radius: 7px;
+      padding: 12px 16px 10px;
+      animation: fadeUp .35s .17s ease both;
+    }
+
+    .cpu-chart-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cpu-chart-label span {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    canvas#cpuGraph {
+      width: 100%;
+      height: 52px;
+      display: block;
+    }
+
+    /* ── Bloco do vídeo ────────────────────────────────────── */
+    .video-wrap {
+      animation: fadeUp .35s .2s ease both;
+    }
+
+    .video-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--accent);
+      border-radius: 8px 8px 0 0;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .video-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .play-badge {
+      width: 26px; height: 26px;
+      background: var(--accent2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .play-badge svg { width: 10px; height: 10px; fill: #fff; margin-left: 1px; }
+
+    .video-label { font-size: 12px; font-weight: 500; color: rgba(255,255,255,.9); }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.55);
+      font-weight: 500;
+    }
+
+    .live-pill::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: blink 1.8s infinite;
+    }
+
+    /* container 16:9 */
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 860px;
+      margin: 0 auto;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.13);
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* ── Sobre o vídeo ─────────────────────────────────────── */
+    .about {
+      max-width: 860px;
+      margin: 22px auto 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      animation: fadeUp .35s .24s ease both;
+    }
+
+    .about-body { flex: 1; }
+
+    .about-title {
+      font-family: var(--serif);
+      font-size: 16px;
+      color: var(--accent);
+      margin-bottom: 7px;
+      font-weight: 400;
+    }
+
+    .about-text {
+      font-size: 13px;
+      font-weight: 300;
+      line-height: 1.76;
+      color: var(--muted);
+    }
+
+    .about-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      border: 1px solid;
+      transition: all .15s;
+      letter-spacing: .03em;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .btn svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--muted);
+      border-color: var(--border);
+    }
+
+    .btn-outline:hover { background: var(--hover); color: var(--text); }
+
+    /* ── Animações ─────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .25; }
+    }
+
+    /* ── Responsivo ────────────────────────────────────────── */
+    @media (max-width: 680px) {
+      .content { padding: 18px 16px 36px; margin: 6px; }
+      .topbar-metrics { display: none; }
+      .topbar-clock { display: none; }
+      .page-header { flex-direction: column; }
+      .about { flex-direction: column; }
+      .about-actions { flex-direction: row; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     SIDEBAR
+     ════════════════════════════════════════════════════════════ -->
+<nav class="sidebar" aria-label="Navegação lateral">
+
+  <!-- logo / identidade -->
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1" opacity=".3"/></svg>
+    </div>
+    <div class="sidebar-logo-text">
+      Task Manager
+      <small>IDEP · TI</small>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section-label">Principal</div>
+
+  <a href="#" class="sidebar-item">
+    <span class="sidebar-icon">📊</span>
+    <span>Processos</span>
+  </a>
+  <a href="#" class="sidebar-item active">
+    <span class="sidebar-icon">📈</span>
+    <span>Desempenho</span>
+  </a>
+  <a href="#" class="sidebar-item">
+    <span class="sidebar-icon">🕒</span>
+    <span>Histórico de aplicativos</span>
+  </a>
+  <a href="#" class="sidebar-item">
+    <span class="sidebar-icon">🚀</span>
+    <span>Inicialização</span>
+  </a>
+  <a href="#" class="sidebar-item">
+    <span class="sidebar-icon">👥</span>
+    <span>Usuários</span>
+  </a>
+  <a href="#" class="sidebar-item">
+    <span class="sidebar-icon">📋</span>
+    <span>Detalhes</span>
+  </a>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section-label">Sistema</div>
+
+  <a href="#" class="sidebar-item">
+    <span class="sidebar-icon">⚙️</span>
+    <span>Configurações</span>
+  </a>
+
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════
+     CONTAINER PRINCIPAL
+     ════════════════════════════════════════════════════════════ -->
+<div class="main-container">
+
+  <!-- topbar com breadcrumb, métricas ao vivo e relógio -->
+  <header class="topbar">
+    <nav class="breadcrumb" aria-label="Localização">
+      <span>Gerenciador de Tarefas</span>
+      <span class="sep">›</span>
+      <span>Desempenho</span>
+      <span class="sep">›</span>
+      <span class="active-crumb">Vídeo de Apresentação</span>
+    </nav>
+
+    <div class="topbar-spacer"></div>
+
+    <div class="topbar-metrics">
+      <div class="topbar-metric">
+        <div class="m-dot" style="background:var(--accent)"></div>
+        CPU <span class="m-val" id="top-cpu">—</span>
+      </div>
+      <div class="topbar-metric">
+        <div class="m-dot" style="background:var(--green)"></div>
+        MEM <span class="m-val" id="top-mem">—</span>
+      </div>
+      <div class="topbar-metric">
+        <div class="m-dot" style="background:var(--accent2)"></div>
+        GPU <span class="m-val" id="top-gpu">—</span>
+      </div>
+    </div>
+
+    <div class="topbar-clock" id="clock">—</div>
+  </header>
+
+  <!-- área de conteúdo -->
+  <main class="content">
+
+    <!-- linha decorativa com badge -->
+    <div class="section-rule">
+      <div class="rule-line"></div>
+      <div class="rule-badge">
+        <div class="rule-badge-dot"></div>
+        <span>Técnico em TI · Aula em Vídeo</span>
+      </div>
+      <div class="rule-line"></div>
+    </div>
+
+    <!-- cabeçalho + badges de curso -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <p class="page-kicker">Sistemas Operacionais</p>
+        <h1 class="page-title">Gerenciador de Tarefas<br>do <em>Windows</em></h1>
+        <p class="page-desc">
+          Entenda como o SO gerencia processos, threads e recursos em tempo
+          real — e como o Gerenciador de Tarefas expõe essas informações ao usuário
+          com dados de CPU, memória, disco e rede.
+        </p>
+      </div>
+
+      <div class="course-badge">
+        <div class="badge-pill course">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 5l7 4 7-4-7-4zM1 9l7 4 7-4M1 13l7 4 7-4"/></svg>
+          Técnico em TI
+        </div>
+        <div class="badge-pill subject">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M5 5h6M5 11h4"/></svg>
+          Sistemas Operacionais
+        </div>
+        <div class="badge-pill author">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+          Henrique · IDEP
+        </div>
+      </div>
+    </div>
+
+    <!-- abas -->
+    <div class="tabs">
+      <div class="tab">CPU</div>
+      <div class="tab">Memória</div>
+      <div class="tab">Disco 0 (C:)</div>
+      <div class="tab">Ethernet</div>
+      <div class="tab active">Vídeo (Apresentação)</div>
+    </div>
+
+    <!-- cards de métricas -->
+    <div class="stats-grid">
+      <div class="stat-card c-blue">
+        <div class="stat-label">Utilização CPU</div>
+        <div class="stat-value" id="cpu-val">—</div>
+        <div class="stat-bar"><div class="stat-fill" id="cpu-bar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card c-amber">
+        <div class="stat-label">Velocidade</div>
+        <div class="stat-value">4.20 GHz</div>
+        <div class="stat-bar"><div class="stat-fill" style="width:72%"></div></div>
+      </div>
+      <div class="stat-card c-green">
+        <div class="stat-label">Memória</div>
+        <div class="stat-value" id="mem-val">—</div>
+        <div class="stat-bar"><div class="stat-fill" id="mem-bar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card c-mono">
+        <div class="stat-label">Tempo de atividade</div>
+        <div class="stat-value" id="uptime">0:00:00</div>
+        <div class="stat-bar"><div class="stat-fill" id="up-bar" style="width:5%"></div></div>
+      </div>
+    </div>
+
+    <!-- mini gráfico de CPU -->
+    <div class="cpu-chart-wrap">
+      <div class="cpu-chart-label">
+        Histórico de utilização da CPU
+        <span id="chart-pct">0%</span>
+      </div>
+      <canvas id="cpuGraph"></canvas>
+    </div>
+
+    <!-- vídeo -->
+    <div class="video-wrap">
+      <div class="video-topbar">
+        <div class="video-topbar-left">
+          <div class="play-badge">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <span class="video-label">Gerenciador de Tarefas — Ribeiro.arttes</span>
+        </div>
+        <span class="live-pill">Disponível</span>
+      </div>
+
+      <div class="video-container">
+        <iframe
+          src="https://www.youtube.com/embed/RSUJtWBtkqA?si=Bre4kPNaE3tFV8Oe"
+          title="Gerenciador de Tarefas — Aula TI"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+
+    <!-- sobre -->
+    <div class="about">
+      <div class="about-body">
+        <h2 class="about-title">Sobre este vídeo</h2>
+        <p class="about-text">
+          Apresentação prática sobre o Gerenciador de Tarefas do Windows: como o sistema
+          operacional organiza processos, aloca memória, monitora disco e rede — tudo
+          visível em tempo real pela ferramenta. Conteúdo produzido para o curso
+          Técnico em TI no IDEP.
+        </p>
+      </div>
+      <div class="about-actions">
+        <a class="btn btn-primary"
+           href="https://youtu.be/RSUJtWBtkqA?si=EefrAk2aMot3PesG"
+           target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24"><path d="M23 7s-.3-1.9-1.2-2.7c-1.1-1.2-2.4-1.2-3-1.3C16.1 3 12 3 12 3s-4.1 0-6.8.2c-.6.1-1.9.1-3 1.3C1.3 5.3 1 7 1 7S.7 9.1.7 11.2v2c0 2 .3 4.2.3 4.2s.3 1.9 1.2 2.7c1.1 1.2 2.6 1.1 3.3 1.2C7.2 21.5 12 21.5 12 21.5s4.1 0 6.8-.3c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.7 1.2-2.7s.3-2.1.3-4.2v-2C23.3 9.1 23 7 23 7zm-13.7 8.5V8.6l8.1 3.5-8.1 3.4z"/></svg>
+          Abrir no YouTube
+        </a>
+        <button class="btn btn-outline" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir página
+        </button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+
+<script>
+/* ── Relógio em tempo real ──────────────────────────────── */
+function atualizarRelogio() {
+  const a = new Date();
+  const h = String(a.getHours()).padStart(2,'0');
+  const m = String(a.getMinutes()).padStart(2,'0');
+  const s = String(a.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+}
+atualizarRelogio();
+setInterval(atualizarRelogio, 1000);
+
+/* ── Cronômetro de uptime ───────────────────────────────── */
+let seg = 0;
+const uptimeEl = document.getElementById('uptime');
+setInterval(() => {
+  seg++;
+  const h = Math.floor(seg / 3600);
+  const m = Math.floor((seg % 3600) / 60);
+  const s = seg % 60;
+  uptimeEl.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}, 1000);
+
+/* ── Simulação de métricas animadas ─────────────────────── */
+let cpuBase = 18, memBase = 46, gpuBase = 4;
+
+function flutuante(base, amp) {
+  return Math.max(1, Math.min(99, base + (Math.random() * amp * 2 - amp)));
+}
+
+function atualizarMetricas() {
+  const cpu = Math.round(flutuante(cpuBase, 10));
+  const mem = Math.round(flutuante(memBase, 5));
+  const gpu = Math.round(flutuante(gpuBase, 3));
+
+  /* cards */
+  document.getElementById('cpu-val').textContent = cpu + '%';
+  document.getElementById('cpu-bar').style.width  = cpu + '%';
+  document.getElementById('mem-val').textContent = mem + '%';
+  document.getElementById('mem-bar').style.width  = mem + '%';
+
+  /* topbar */
+  document.getElementById('top-cpu').textContent = cpu + '%';
+  document.getElementById('top-mem').textContent = mem + '%';
+  document.getElementById('top-gpu').textContent = gpu + '%';
+
+  /* gráfico */
+  document.getElementById('chart-pct').textContent = cpu + '%';
+  pushGraph(cpu);
+}
+
+/* ── Mini gráfico de CPU (Canvas) ───────────────────────── */
+const canvas  = document.getElementById('cpuGraph');
+const ctx     = canvas.getContext('2d');
+const pontos  = [];
+const MAX_PTS = 60;
+
+function setupCanvas() {
+  /* DPI resolution */
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = 52          * dpr;
+  ctx.scale(dpr, dpr);
+  canvas.style.width  = rect.width + 'px';
+  canvas.style.height = '52px';
+}
+
+function pushGraph(val) {
+  pontos.push(val);
+  if (pontos.length > MAX_PTS) pontos.shift();
+  desenharGraph();
+}
+
+function desenharGraph() {
+  /* pega cor do CSS — funciona em dark/light */
+  const style   = getComputedStyle(document.documentElement);
+  const corAcc  = style.getPropertyValue('--accent').trim();
+  const corBord = style.getPropertyValue('--border').trim();
+  const W = canvas.width  / (window.devicePixelRatio || 1);
+  const H = canvas.height / (window.devicePixelRatio || 1);
+
+  ctx.clearRect(0, 0, W, H);
+
+  /* grade horizontal */
+  ctx.strokeStyle = corBord;
+  ctx.lineWidth = 0.5;
+  [25, 50, 75].forEach(y => {
+    const py = H - (y / 100) * H;
+    ctx.beginPath();
+    ctx.moveTo(0, py);
+    ctx.lineTo(W, py);
+    ctx.stroke();
+  });
+
+  if (pontos.length < 2) return;
+
+  const step = W / (MAX_PTS - 1);
+
+  /* área preenchida */
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0,   corAcc + '40');
+  grad.addColorStop(1,   corAcc + '08');
+
+  ctx.beginPath();
+  pontos.forEach((v, i) => {
+    const x = i * step;
+    const y = H - (v / 100) * H;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo((pontos.length - 1) * step, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* linha */
+  ctx.beginPath();
+  pontos.forEach((v, i) => {
+    const x = i * step;
+    const y = H - (v / 100) * H;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = corAcc;
+  ctx.lineWidth   = 1.5;
+  ctx.lineJoin    = 'round';
+  ctx.stroke();
+}
+
+/* inicializar canvas e pré-popular com dados "históricos" */
+setupCanvas();
+for (let i = 0; i < MAX_PTS; i++) pushGraph(Math.round(flutuante(cpuBase, 8)));
+window.addEventListener('resize', () => { setupCanvas(); desenharGraph(); });
+
+/* iniciar ciclo de métricas */
+atualizarMetricas();
+setInterval(atualizarMetricas, 2000);
+
+/* ── Abas clicáveis ─────────────────────────────────────── */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
